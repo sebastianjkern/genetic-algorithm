@@ -1,0 +1,11 @@
+syntax = "proto2";
+
+package main;
+
+message Genoms {
+    repeated uint64 genoms = 1;
+}
+
+message Creatures {
+    repeated Genoms creatures = 1;
+}
