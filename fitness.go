@@ -45,14 +45,14 @@ func GetFitness(creature Genoms) float64 {
 
 	img := DecodeGenomToImage(creature, image.Rect(0, 0, width, height))
 
-	sum := uint16(0)
+	sum := uint64(0)
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
-			sum += uint16(math.Pow(float64(referenceImage.GrayAt(x, y).Y-img.GrayAt(x, y).Y), 100))
+			sum += uint64(math.Pow(float64(referenceImage.GrayAt(x, y).Y-img.GrayAt(x, y).Y), 2))
 		}
 	}
 
-	return math.MaxUint16 - float64(sum)
+	return math.MaxUint64 - float64(sum)
 }
 
 func CalculateFitness(population []*Genoms) map[int]float64 {

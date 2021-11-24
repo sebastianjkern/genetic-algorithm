@@ -13,7 +13,7 @@ const (
 	brainSize     = 50
 	mutationRate  = 0.0010
 	crossoverRate = 0.3
-	generations   = 500
+	generations   = 10000
 )
 
 func Init() {
