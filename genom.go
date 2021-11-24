@@ -11,26 +11,30 @@ import (
 )
 
 const (
-	mask_out 		= 0x8000000000000000
-	mask_startid 	= 0x7FFF000000000000
-	mask_weight 	= 0xFFFFFFFF0000
-	mask_endid 		= 0xFFFE
+	maskX1 = 0xffff000000000000
+	maskY1 = 0xffff00000000
+	maskX2 = 0xffff0000
+	maskY2 = 0xffff
 )
 
-func GetOuputFlag(genom uint64) uint64 {
-	return (genom & mask_out) >> 63
+func GetX1(val uint64) uint16 {
+	return uint16((val ^ maskX1) >> 48)
 }
 
-func GetStartId(genom uint64) uint64 {
-	return (genom & mask_startid) >> 48
+func GetY1(val uint64) uint16 {
+	return uint16((val ^ maskY1) >> 32)
 }
 
-func GetWeight(genom uint64) uint64 {
-	return (genom & mask_weight) >> 16
+func GetX2(val uint64) uint16 {
+	return uint16((val ^ maskX2) >> 16)
 }
 
-func GetEndId(genom uint64) uint64 {
-	return (genom & mask_endid) >> 1
+func GetY2(val uint64) uint16 {
+	return uint16(val ^ maskY2)
+}
+
+func GetPoints(val uint64) (uint16, uint16, uint16, uint16) {
+	return GetX1(val), GetY1(val), GetX2(val), GetY2(val)
 }
 
 func WritePopulation(generation int, creatures Creatures) error {
@@ -47,7 +51,7 @@ func WritePopulation(generation int, creatures Creatures) error {
 	return err
 }
 
-func ReadPopulation(generation int) (Creatures, error)  {
+func ReadPopulation(generation int) (Creatures, error) {
 	in, err := ioutil.ReadFile(fmt.Sprintf("population_gen_%s.bin", strconv.Itoa(generation)))
 
 	if err != nil {
@@ -68,7 +72,7 @@ func GenerateRandomGenoms(n int) Genoms {
 	genoms := make([]uint64, n)
 	rand.Seed(time.Now().UnixNano())
 
-	for i:=0; i < n; i++ {
+	for i := 0; i < n; i++ {
 		gen := rand.Uint64()
 		genoms[i] = gen
 	}
@@ -88,5 +92,75 @@ func PrintGenoms(genoms Genoms) {
 func PrintPopulation(pop Creatures) {
 	for _, i := range pop.GetCreatures() {
 		PrintGenoms(*i)
+	}
+}
+
+func CreateInitialPopulation(size int, brainSize int) Creatures {
+	population := make([]*Genoms, size)
+
+	for i := range population {
+		genoms := GenerateRandomGenoms(brainSize)
+		population[i] = &genoms
+	}
+
+	return Creatures{Creatures: population}
+}
+
+func Sample(slice []*Genoms) (*Genoms, int) {
+	randIndex := rand.Intn(len(slice))
+	return slice[randIndex], randIndex
+}
+
+func Mutation(genoms *Genoms, likeliness float64) *Genoms {
+	newGenoms := make([]uint64, brainSize)
+
+	for index, genom := range genoms.GetGenoms() {
+		if RandomBool(likeliness) {
+			mask := uint64(0b1) << RandomIntBtw(0, 64)
+			newGenoms[index] = mask ^ genom
+		} else {
+			newGenoms[index] = genom
+		}
+	}
+
+	return &Genoms{Genoms: newGenoms}
+}
+
+func Crossover(parent1 *Genoms, parent2 *Genoms) []*Genoms {
+	child1 := make([]uint64, brainSize)
+	child2 := make([]uint64, brainSize)
+
+	for i := 0; i < brainSize; i++ {
+		parent1Gene := parent1.GetGenoms()[i]
+		parent2Gene := parent2.GetGenoms()[i]
+
+		for i2 := 0; i2 < 2; i2++ {
+			if !RandomBool(crossoverRate) {
+				child1[i] = parent1Gene
+				child2[i] = parent2Gene
+				continue
+			}
+
+			crossoverPoint := RandomIntBtw(0, 64)
+
+			mask := (^uint64(0)) >> crossoverPoint
+			iMask := ^mask
+
+			gene := (mask & parent1Gene) ^ (iMask & parent2Gene)
+
+			switch i2 {
+			case 0:
+				child1[i] = gene
+			case 1:
+				child2[i] = gene
+			default:
+				return nil
+			}
+		}
+	}
+
+	return []*Genoms{
+		Mutation(&Genoms{Genoms: child1}, mutationRate),
+		Mutation(&Genoms{Genoms: child2}, mutationRate),
 	}
 }
