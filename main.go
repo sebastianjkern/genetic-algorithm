@@ -3,16 +3,17 @@ package main
 import (
 	"github.com/Ernyoke/Imger/imgio"
 	_ "github.com/golang/protobuf/proto"
+	"image"
 	"math/rand"
 	"time"
 )
 
 const (
-	popSize       = 1
-	brainSize     = 100
-	mutationRate  = 0.0020
-	crossoverRate = 0.1
-	generations   = 1
+	popSize       = 100
+	brainSize     = 50
+	mutationRate  = 0.0010
+	crossoverRate = 0.3
+	generations   = 500
 )
 
 func Init() {
@@ -65,21 +66,24 @@ func main() {
 		sum /= float32(popSize)
 
 		averageFitness = append(averageFitness, sum)
+
+		if i > 0 {
+			println("Generation ", i+1, " with average delta fitness ", averageFitness[len(averageFitness)-1]-averageFitness[len(averageFitness)-2])
+		}
 	}
 
-	err := WriteFitness(averageFitness)
+	err := SerializeFitnessData(averageFitness)
 	if err != nil {
 		return
 	}
 
-	image, err := GetReferenceImage()
+	referenceImage, err := GetReferenceImage()
 	if err != nil {
 		return
 	}
 
-	err = imgio.Imwrite(image, "canny.png")
+	err = imgio.Imwrite(DecodeGenomToImage(*population[0], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy())), "lastgen.png")
 	if err != nil {
 		return
 	}
-
 }

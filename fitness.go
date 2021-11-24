@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/Ernyoke/Imger/imgio"
 	"github.com/golang/protobuf/proto"
 	"image"
 	"image/color"
@@ -14,21 +13,11 @@ func ClipToSize(size uint16, value uint16) float64 {
 	return float64(value) * (float64(size) / float64(math.MaxUint16))
 }
 
-func GetFitness(creature Genoms) float64 {
-	println("evaluating fitness function")
+func DecodeGenomToImage(creature Genoms, rectangle image.Rectangle) *image.Gray {
+	width := rectangle.Dx()
+	height := rectangle.Dy()
 
-	referenceImage, err := GetReferenceImage()
-	if err != nil {
-		return 0
-	}
-
-	width := referenceImage.Bounds().Dx()
-	height := referenceImage.Bounds().Dy()
-
-	upLeft := image.Point{}
-	lowRight := image.Point{X: width, Y: height}
-
-	img := image.NewGray(image.Rectangle{Min: upLeft, Max: lowRight})
+	img := image.NewGray(rectangle)
 
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
@@ -42,12 +31,28 @@ func GetFitness(creature Genoms) float64 {
 		DrawAntialiasedLine(img, fx1, fy1, fx2, fy2)
 	}
 
-	err = imgio.Imwrite(img, "gray.png")
+	return img
+}
+
+func GetFitness(creature Genoms) float64 {
+	referenceImage, err := GetReferenceImage()
 	if err != nil {
 		return 0
 	}
 
-	return 0
+	width := referenceImage.Bounds().Dx()
+	height := referenceImage.Bounds().Dy()
+
+	img := DecodeGenomToImage(creature, image.Rect(0, 0, width, height))
+
+	sum := uint16(0)
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			sum += uint16(math.Pow(float64(referenceImage.GrayAt(x, y).Y-img.GrayAt(x, y).Y), 100))
+		}
+	}
+
+	return math.MaxUint16 - float64(sum)
 }
 
 func CalculateFitness(population []*Genoms) map[int]float64 {
@@ -60,7 +65,7 @@ func CalculateFitness(population []*Genoms) map[int]float64 {
 	return fitness
 }
 
-func WriteFitness(fitness []float32) error {
+func SerializeFitnessData(fitness []float32) error {
 	out, err := proto.Marshal(&Fitness{AverageFitness: fitness})
 	if err != nil {
 		log.Fatalln("Failed to encode fitness buffer: ", err)
