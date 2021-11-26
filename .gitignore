@@ -1,3 +1,8 @@
 fitness.bin
 genetic-algorithm
 .idea
+/test_data
+*.png
+*.jpeg
+*.pb.go
+fitness_pb2.py

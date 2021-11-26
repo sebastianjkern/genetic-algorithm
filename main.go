@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Ernyoke/Imger/imgio"
 	_ "github.com/golang/protobuf/proto"
 	"image"
@@ -9,11 +10,11 @@ import (
 )
 
 const (
-	popSize       = 100
+	popSize       = 150
 	brainSize     = 50
-	mutationRate  = 0.0010
-	crossoverRate = 0.3
-	generations   = 10000
+	mutationRate  = 0.025
+	crossoverRate = 0.0
+	generations   = 100000
 )
 
 func Init() {
@@ -31,7 +32,7 @@ func main() {
 	averageFitness := make([]float32, 0)
 
 	for i := 0; i < generations; i++ {
-		fitness := CalculateFitness(population)
+		fitness, bestIndex := CalculateFitness(population)
 
 		for i := 0; i < popSize/2; i++ {
 			parent1, index1 := Sample(population)
@@ -55,6 +56,11 @@ func main() {
 			}
 		}
 
+		// Best Creature of the given generation gets a survival rate of 100 percent
+		_, sampledIndex := Sample(population)
+		swapPopulation[sampledIndex] = population[bestIndex]
+
+		// Swap population
 		population = swapPopulation
 		swapPopulation = make([]*Genoms, 0)
 
@@ -67,8 +73,20 @@ func main() {
 
 		averageFitness = append(averageFitness, sum)
 
+		if (i % 250) == 0 {
+			referenceImage, err := GetReferenceImage()
+			if err != nil {
+				return
+			}
+			img := DecodeGenomToImage(*population[0], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy()))
+			err = imgio.Imwrite(img, fmt.Sprintf("test_data/gen_%d.png", i))
+			if err != nil {
+				return
+			}
+		}
+
 		if i > 0 {
-			println("Generation ", i+1, " with average delta fitness ", averageFitness[len(averageFitness)-1]-averageFitness[len(averageFitness)-2])
+			println("Generation ", i+1, " with fitness ", averageFitness[len(averageFitness)-1], " with average delta fitness ", uint16(averageFitness[len(averageFitness)-1]-averageFitness[len(averageFitness)-2]))
 		}
 	}
 

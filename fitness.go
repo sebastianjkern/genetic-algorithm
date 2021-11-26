@@ -2,36 +2,13 @@ package main
 
 import (
 	"github.com/golang/protobuf/proto"
-	"image"
-	"image/color"
 	"io/ioutil"
 	"log"
 	"math"
 )
 
-func ClipToSize(size uint16, value uint16) float64 {
+func Map(size uint16, value uint16) float64 {
 	return float64(value) * (float64(size) / float64(math.MaxUint16))
-}
-
-func DecodeGenomToImage(creature Genoms, rectangle image.Rectangle) *image.Gray {
-	width := rectangle.Dx()
-	height := rectangle.Dy()
-
-	img := image.NewGray(rectangle)
-
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			img.Set(x, y, color.White)
-		}
-	}
-
-	for _, genom := range creature.GetGenoms() {
-		x1, y1, x2, y2 := GetPoints(genom)
-		fx1, fy1, fx2, fy2 := ClipToSize(x1, uint16(width)), ClipToSize(y1, uint16(height)), ClipToSize(x2, uint16(width)), ClipToSize(y2, uint16(height))
-		DrawAntialiasedLine(img, fx1, fy1, fx2, fy2)
-	}
-
-	return img
 }
 
 func GetFitness(creature Genoms) float64 {
@@ -43,26 +20,32 @@ func GetFitness(creature Genoms) float64 {
 	width := referenceImage.Bounds().Dx()
 	height := referenceImage.Bounds().Dy()
 
-	img := DecodeGenomToImage(creature, image.Rect(0, 0, width, height))
+	totalSum := float64(0)
 
-	sum := uint64(0)
-	for x := 0; x < width; x++ {
-		for y := 0; y < height; y++ {
-			sum += uint64(math.Pow(float64(referenceImage.GrayAt(x, y).Y-img.GrayAt(x, y).Y), 2))
-		}
+	for _, genom := range creature.GetGenoms() {
+		x1, y1, x2, y2 := GetPoints(genom)
+		fx1, fy1, fx2, fy2 := Map(x1, uint16(width)), Map(y1, uint16(height)), Map(x2, uint16(width)), Map(y2, uint16(height))
+
+		length := math.Sqrt(math.Pow(float64(x2-x1), 2) + math.Pow(float64(y2-y1), 2))
+
+		totalSum += math.Pow(GetDiff(referenceImage, fx1, fy1, fx2, fy2), 4) / length
 	}
 
-	return math.MaxUint64 - float64(sum)
+	return math.Log2(1 / totalSum)
 }
 
-func CalculateFitness(population []*Genoms) map[int]float64 {
+func CalculateFitness(population []*Genoms) (map[int]float64, int) {
 	fitness := map[int]float64{}
+	best := 0
 
 	for index, creature := range population {
 		fitness[index] = GetFitness(*creature)
+		if fitness[index] > fitness[best] {
+			best = index
+		}
 	}
 
-	return fitness
+	return fitness, best
 }
 
 func SerializeFitnessData(fitness []float32) error {
