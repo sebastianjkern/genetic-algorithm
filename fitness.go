@@ -35,14 +35,26 @@ func GetFitness(creature Genoms) float64 {
 }
 
 func CalculateFitness(population []*Genoms) (map[int]float64, int) {
-	fitness := map[int]float64{}
+	channels := map[int]chan float64{}
 	best := 0
 
+	// Fill map with empty values
+	for index := range population {
+		channels[index] = make(chan float64)
+	}
+
 	for index, creature := range population {
-		fitness[index] = GetFitness(*creature)
-		if fitness[index] > fitness[best] {
-			best = index
-		}
+		creature := creature
+		go func(val chan float64) {
+			val <- GetFitness(*creature)
+		}(channels[index])
+	}
+
+	fitness := map[int]float64{}
+
+	for index := range population {
+		fitness[index] = <-channels[index]
+		close(channels[index])
 	}
 
 	return fitness, best

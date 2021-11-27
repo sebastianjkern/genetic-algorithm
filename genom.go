@@ -126,7 +126,7 @@ func Mutation(genoms *Genoms, likeliness float64) *Genoms {
 	return &Genoms{Genoms: newGenoms}
 }
 
-func Crossover(parent1 *Genoms, parent2 *Genoms) []*Genoms {
+func CrossoverST(parent1 *Genoms, parent2 *Genoms) []*Genoms {
 	child1 := make([]uint64, brainSize)
 	child2 := make([]uint64, brainSize)
 
@@ -134,19 +134,16 @@ func Crossover(parent1 *Genoms, parent2 *Genoms) []*Genoms {
 		parent1Gene := parent1.GetGenoms()[i]
 		parent2Gene := parent2.GetGenoms()[i]
 
+		if !RandomBool(crossoverRate) {
+			child1[i] = parent1Gene
+			child2[i] = parent2Gene
+			continue
+		}
+
 		for i2 := 0; i2 < 2; i2++ {
-			if !RandomBool(crossoverRate) {
-				child1[i] = parent1Gene
-				child2[i] = parent2Gene
-				continue
-			}
+			mask := (^uint64(0)) >> RandomIntBtw(0, 64)
 
-			crossoverPoint := RandomIntBtw(0, 64)
-
-			mask := (^uint64(0)) >> crossoverPoint
-			iMask := ^mask
-
-			gene := (mask & parent1Gene) ^ (iMask & parent2Gene)
+			gene := (mask & parent1Gene) ^ ((^mask) & parent2Gene)
 
 			switch i2 {
 			case 0:
@@ -157,6 +154,54 @@ func Crossover(parent1 *Genoms, parent2 *Genoms) []*Genoms {
 				return nil
 			}
 		}
+	}
+
+	return []*Genoms{
+		Mutation(&Genoms{Genoms: child1}, mutationRate),
+		Mutation(&Genoms{Genoms: child2}, mutationRate),
+	}
+}
+
+func CrossoverMT(parent1 *Genoms, parent2 *Genoms) []*Genoms {
+	child1channels := make([]chan uint64, brainSize)
+	child2channels := make([]chan uint64, brainSize)
+
+	for i := 0; i < brainSize; i++ {
+		child1channels[i] = make(chan uint64)
+		child2channels[i] = make(chan uint64)
+	}
+
+	for i := 0; i < brainSize; i++ {
+		go func(child1channel chan uint64, child2channel chan uint64, parent1 uint64, parent2 uint64) {
+			if !RandomBool(crossoverRate) {
+				child1channel <- parent1
+				child2channel <- parent2
+				return
+			}
+
+			for i2 := 0; i2 < 2; i2++ {
+				mask := (^uint64(0)) >> RandomIntBtw(0, 64)
+
+				gene := (mask & parent1) ^ ((^mask) & parent2)
+
+				switch i2 {
+				case 0:
+					child1channel <- gene
+				case 1:
+					child2channel <- gene
+				default:
+					return
+				}
+			}
+		}(child1channels[i], child2channels[i], parent1.GetGenoms()[i], parent2.GetGenoms()[i])
+	}
+
+	child1 := make([]uint64, brainSize)
+	child2 := make([]uint64, brainSize)
+
+	for i := 0; i < brainSize; i++ {
+		child1[i] = <-child1channels[i]
+		child2[i] = <-child2channels[i]
 	}
 
 	return []*Genoms{

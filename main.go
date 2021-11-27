@@ -11,9 +11,9 @@ import (
 
 const (
 	popSize       = 150
-	brainSize     = 50
+	brainSize     = 100
 	mutationRate  = 0.025
-	crossoverRate = 0.0
+	crossoverRate = 0.01
 	generations   = 100000
 )
 
@@ -51,7 +51,7 @@ func main() {
 				fitterParent2 = parent4
 			}
 
-			for _, c := range Crossover(fitterParent1, fitterParent2) {
+			for _, c := range CrossoverST(fitterParent1, fitterParent2) {
 				swapPopulation = append(swapPopulation, c)
 			}
 		}
@@ -64,6 +64,7 @@ func main() {
 		population = swapPopulation
 		swapPopulation = make([]*Genoms, 0)
 
+		// Calculate average fitness of each generation
 		sum := float32(0)
 		for _, v := range fitness {
 			sum += float32(v)
@@ -78,8 +79,8 @@ func main() {
 			if err != nil {
 				return
 			}
-			img := DecodeGenomToImage(*population[0], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy()))
-			err = imgio.Imwrite(img, fmt.Sprintf("test_data/gen_%d.png", i))
+			img := DecodeGenomToImage(*population[bestIndex], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy()))
+			err = imgio.Imwrite(img, fmt.Sprintf("out/gen_%d.png", i/250))
 			if err != nil {
 				return
 			}
@@ -88,6 +89,7 @@ func main() {
 		if i > 0 {
 			println("Generation ", i+1, " with fitness ", averageFitness[len(averageFitness)-1], " with average delta fitness ", uint16(averageFitness[len(averageFitness)-1]-averageFitness[len(averageFitness)-2]))
 		}
+
 	}
 
 	err := SerializeFitnessData(averageFitness)
