@@ -1,12 +1,3 @@
-# Cleanup
-echo "Clean compiled files [y, N] ?"
-read -r a
-if [ "$a" == "y" ]; then
-  rm -f ../genetic-algorithm
-  rm -f ../genom.pb.go
-  rm -f ./fitness_pb2.py
-fi
-
 # Compile proto buffers
 protoc --go_out=.. genom.proto
 protoc --go_out=.. fitness.proto

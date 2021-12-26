@@ -10,4 +10,4 @@ genetic-algorithm
 /data/fitness.bin
 /data/logs.txt
 
-out
+out/*
