@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 fitness = Fitness()
 
-f = open("fitness.bin", "rb")
+f = open("../data/fitness.bin", "rb")
 fitness.ParseFromString(f.read())
 
 plt.plot(fitness.AverageFitness)

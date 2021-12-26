@@ -4,14 +4,71 @@ import (
 	"github.com/Ernyoke/Imger/imgio"
 	"image"
 	"image/color"
+	"log"
 	"math"
 )
 
+var distanceMap *image.Gray = nil
+
+func GetDistanceMap() (*image.Gray, error) {
+	if distanceMap == nil {
+		generatedDistanceMap, err := imgio.ImreadGray(DistanceMapFilePath)
+
+		if err != nil {
+			generatedDistanceMap, err = CreateDistanceMap()
+			if err != nil {
+				return nil, err
+			}
+			err = imgio.Imwrite(generatedDistanceMap, DistanceMapFilePath)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		distanceMap = generatedDistanceMap
+	}
+
+	return distanceMap, nil
+}
+
+func CreateDistanceMap() (*image.Gray, error) {
+	refImage, err := CacheReferenceImage()
+	if err != nil {
+		return nil, err
+	}
+
+	width, height := refImage.Bounds().Dx(), refImage.Bounds().Dy()
+
+	targetImage := image.NewGray(refImage.Rect)
+
+	for xTarget := 0; xTarget < width; xTarget++ {
+		for yTarget := 0; yTarget < height; yTarget++ {
+			minDistance := float64(width)
+
+			for xRef := 0; xRef < width; xRef++ {
+				for yRef := 0; yRef < height; yRef++ {
+					c := refImage.GrayAt(xRef, yRef)
+					d := math.Sqrt(math.Pow(float64(xRef-xTarget), 2) + math.Pow(float64(yRef-yTarget), 2))
+
+					if c.Y < ClippingThreshold && d < minDistance {
+						minDistance = d
+					}
+				}
+			}
+
+			targetImage.Set(xTarget, yTarget, color.Gray{Y: uint8(minDistance * 2)})
+		}
+		log.Println(xTarget, "/", width)
+	}
+
+	return targetImage, nil
+}
+
 var referenceImage *image.Gray = nil
 
-func GetReferenceImage() (*image.Gray, error) {
+func CacheReferenceImage() (*image.Gray, error) {
 	if referenceImage == nil {
-		err := readReferenceImage()
+		err := ReadReferenceImage()
 		if err != nil {
 			return nil, err
 		}
@@ -20,10 +77,24 @@ func GetReferenceImage() (*image.Gray, error) {
 	return referenceImage, nil
 }
 
-func readReferenceImage() error {
-	gray, err := imgio.ImreadGray("image.png")
+func ReadReferenceImage() error {
+	gray, err := imgio.ImreadGray(ReferenceImageFilePath)
 	if err != nil {
 		return err
+	}
+
+	if InvertGrayImage {
+		width, height := gray.Bounds().Dx(), gray.Bounds().Dy()
+
+		targetImage := image.NewGray(gray.Bounds())
+
+		for x := 0; x < width; x++ {
+			for y := 0; y < height; y++ {
+				targetImage.Set(x, y, color.Gray{Y: math.MaxUint8 - gray.GrayAt(x, y).Y})
+			}
+		}
+
+		gray = targetImage
 	}
 
 	referenceImage = gray
@@ -35,14 +106,8 @@ func GetDiff(img *image.Gray, x1, y1, x2, y2 float64) float64 {
 
 	dx := x2 - x1
 	dy := y2 - y1
-	ax := dx
-	if ax < 0 {
-		ax = -ax
-	}
-	ay := dy
-	if ay < 0 {
-		ay = -ay
-	}
+	ax := math.Abs(dx)
+	ay := math.Abs(dy)
 
 	var plot func(int, int, float64)
 	if ax < ay {
@@ -83,7 +148,7 @@ func GetDiff(img *image.Gray, x1, y1, x2, y2 float64) float64 {
 	for x := xpxl1 + 1; x <= xpxl2-1; x++ {
 		plot(x, int(ipart(intery)), rfpart(intery))
 		plot(x, int(ipart(intery))+1, fpart(intery))
-		intery = intery + gradient
+		intery += gradient
 	}
 
 	return sum

@@ -12,13 +12,12 @@ func Map(size uint16, value uint16) float64 {
 }
 
 func GetFitness(creature Genoms) float64 {
-	referenceImage, err := GetReferenceImage()
+	distanceMap, err := GetDistanceMap()
 	if err != nil {
-		return 0
+		log.Fatal(err)
 	}
 
-	width := referenceImage.Bounds().Dx()
-	height := referenceImage.Bounds().Dy()
+	width, height := distanceMap.Bounds().Dx(), distanceMap.Bounds().Dy()
 
 	totalSum := float64(0)
 
@@ -28,7 +27,7 @@ func GetFitness(creature Genoms) float64 {
 
 		length := math.Sqrt(math.Pow(float64(x2-x1), 2) + math.Pow(float64(y2-y1), 2))
 
-		totalSum += math.Pow(GetDiff(referenceImage, fx1, fy1, fx2, fy2), 4) / length
+		totalSum += math.Pow(GetDiff(distanceMap, fx1, fy1, fx2, fy2), 4) / length
 	}
 
 	return math.Log2(1 / totalSum)
@@ -66,7 +65,7 @@ func SerializeFitnessData(fitness []float32) error {
 		log.Fatalln("Failed to encode fitness buffer: ", err)
 	}
 
-	if err := ioutil.WriteFile("fitness.bin", out, 0644); err != nil {
+	if err := ioutil.WriteFile(FitnessDataOutFilePath, out, 0644); err != nil {
 		log.Fatalln("Failed to write proto buffer: ", err)
 	}
 

@@ -84,9 +84,9 @@ func GenerateRandomGenoms(n int) Genoms {
 
 func PrintGenoms(genoms Genoms) {
 	for _, i := range genoms.GetGenoms() {
-		fmt.Print(strconv.FormatUint(i, 16))
+		log.Print(strconv.FormatUint(i, 16))
 	}
-	fmt.Print("\n")
+	log.Print("\n")
 }
 
 func PrintPopulation(pop Creatures) {
@@ -112,18 +112,18 @@ func Sample(slice []*Genoms) (*Genoms, int) {
 }
 
 func Mutation(genoms *Genoms, likeliness float64) *Genoms {
-	newGenoms := make([]uint64, brainSize)
+	mutatedGenoms := make([]uint64, brainSize)
 
 	for index, genom := range genoms.GetGenoms() {
 		if RandomBool(likeliness) {
 			mask := uint64(0b1) << RandomIntBtw(0, 64)
-			newGenoms[index] = mask ^ genom
+			mutatedGenoms[index] = mask ^ genom
 		} else {
-			newGenoms[index] = genom
+			mutatedGenoms[index] = genom
 		}
 	}
 
-	return &Genoms{Genoms: newGenoms}
+	return &Genoms{Genoms: mutatedGenoms}
 }
 
 func CrossoverST(parent1 *Genoms, parent2 *Genoms) []*Genoms {
