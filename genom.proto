@@ -2,6 +2,8 @@ syntax = "proto2";
 
 package main;
 
+option go_package = "./serialization";
+
 message Genoms {
     repeated uint64 genoms = 1;
 }

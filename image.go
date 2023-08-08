@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/Ernyoke/Imger/imgio"
+	"genetic-algorithm/serialization"
+	"github.com/ernyoke/imger/imgio"
 	"image"
 	"image/color"
 	"log"
@@ -235,7 +236,7 @@ func rfpart(x float64) float64 {
 	return 1 - fpart(x)
 }
 
-func DecodeGenomToImage(creature Genoms, rectangle image.Rectangle) *image.Gray {
+func DecodeGenomToImage(creature *serialization.Genoms, rectangle image.Rectangle) *image.Gray {
 	width := rectangle.Dx()
 	height := rectangle.Dy()
 

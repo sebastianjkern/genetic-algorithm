@@ -1,4 +1,4 @@
-genetic-algorithm
+genetic-algorithm.exe
 
 .idea
 
@@ -6,7 +6,10 @@ genetic-algorithm
 *.jpeg
 *.pb.go
 
-/scripts/fitness_pb2.py
+/serialization
+/python/fitness_pb2.py
+/python/fitness_pb2.pyi
+
 /data/fitness.bin
 /data/logs.txt
 

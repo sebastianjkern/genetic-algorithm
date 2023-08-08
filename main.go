@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/Ernyoke/Imger/imgio"
-	_ "github.com/golang/protobuf/proto"
+	"genetic-algorithm/serialization"
+	"github.com/ernyoke/imger/imgio"
 	"image"
 	"log"
 	"math/rand"
@@ -51,7 +51,7 @@ func main() {
 	initialPopulation := CreateInitialPopulation(popSize, brainSize)
 
 	population := initialPopulation.GetCreatures()
-	swapPopulation := make([]*Genoms, 0)
+	swapPopulation := make([]*serialization.Genoms, 0)
 
 	averageFitness := make([]float32, 0)
 
@@ -64,8 +64,8 @@ func main() {
 			parent3, index3 := Sample(population)
 			parent4, index4 := Sample(population)
 
-			var fitterParent1 *Genoms
-			var fitterParent2 *Genoms
+			var fitterParent1 *serialization.Genoms
+			var fitterParent2 *serialization.Genoms
 
 			if fitterParent1 = parent1; fitness[index2] > fitness[index1] {
 				fitterParent1 = parent2
@@ -86,7 +86,7 @@ func main() {
 
 		// Swap population
 		population = swapPopulation
-		swapPopulation = make([]*Genoms, 0)
+		swapPopulation = make([]*serialization.Genoms, 0)
 
 		// Calculate average fitness of each generation
 		sum := float32(0)
@@ -104,7 +104,7 @@ func main() {
 			}
 
 			img := DecodeGenomToImage(
-				*population[bestIndex],
+				population[bestIndex],
 				image.Rect(
 					0,
 					0,
@@ -131,7 +131,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	err = imgio.Imwrite(DecodeGenomToImage(*population[0], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy())), LastGenImageFilePath)
+	err = imgio.Imwrite(DecodeGenomToImage(population[0], image.Rect(0, 0, referenceImage.Bounds().Dx(), referenceImage.Bounds().Dy())), LastGenImageFilePath)
 	if err != nil {
 		log.Fatalln(err)
 	}

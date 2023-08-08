@@ -2,6 +2,8 @@ syntax = "proto2";
 
 package main;
 
+option go_package = "./serialization";
+
 message Fitness {
   repeated float AverageFitness = 1;
 }

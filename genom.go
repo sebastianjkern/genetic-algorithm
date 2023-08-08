@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
+	"genetic-algorithm/serialization"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -37,8 +38,8 @@ func GetPoints(val uint64) (uint16, uint16, uint16, uint16) {
 	return GetX1(val), GetY1(val), GetX2(val), GetY2(val)
 }
 
-func WritePopulation(generation int, creatures Creatures) error {
-	out, err := proto.Marshal(&creatures)
+func WritePopulation(generation int, creatures *serialization.Creatures) error {
+	out, err := proto.Marshal(creatures)
 
 	if err != nil {
 		log.Fatalln("Failed to encode population: ", err)
@@ -51,14 +52,14 @@ func WritePopulation(generation int, creatures Creatures) error {
 	return err
 }
 
-func ReadPopulation(generation int) (Creatures, error) {
+func ReadPopulation(generation int) (serialization.Creatures, error) {
 	in, err := ioutil.ReadFile(fmt.Sprintf("population_gen_%s.bin", strconv.Itoa(generation)))
 
 	if err != nil {
 		log.Fatalf("Read File Error: %s ", err.Error())
 	}
 
-	creatures := &Creatures{}
+	creatures := &serialization.Creatures{}
 
 	err = proto.Unmarshal(in, creatures)
 	if err != nil {
@@ -68,7 +69,7 @@ func ReadPopulation(generation int) (Creatures, error) {
 	return *creatures, err
 }
 
-func GenerateRandomGenoms(n int) Genoms {
+func GenerateRandomGenoms(n int) serialization.Genoms {
 	genoms := make([]uint64, n)
 	rand.Seed(time.Now().UnixNano())
 
@@ -77,41 +78,41 @@ func GenerateRandomGenoms(n int) Genoms {
 		genoms[i] = gen
 	}
 
-	return Genoms{
+	return serialization.Genoms{
 		Genoms: genoms,
 	}
 }
 
-func PrintGenoms(genoms Genoms) {
+func PrintGenoms(genoms *serialization.Genoms) {
 	for _, i := range genoms.GetGenoms() {
 		log.Print(strconv.FormatUint(i, 16))
 	}
 	log.Print("\n")
 }
 
-func PrintPopulation(pop Creatures) {
+func PrintPopulation(pop *serialization.Creatures) {
 	for _, i := range pop.GetCreatures() {
-		PrintGenoms(*i)
+		PrintGenoms(i)
 	}
 }
 
-func CreateInitialPopulation(size int, brainSize int) Creatures {
-	population := make([]*Genoms, size)
+func CreateInitialPopulation(size int, brainSize int) serialization.Creatures {
+	population := make([]*serialization.Genoms, size)
 
 	for i := range population {
 		genoms := GenerateRandomGenoms(brainSize)
 		population[i] = &genoms
 	}
 
-	return Creatures{Creatures: population}
+	return serialization.Creatures{Creatures: population}
 }
 
-func Sample(slice []*Genoms) (*Genoms, int) {
+func Sample(slice []*serialization.Genoms) (*serialization.Genoms, int) {
 	randIndex := rand.Intn(len(slice))
 	return slice[randIndex], randIndex
 }
 
-func Mutation(genoms *Genoms, likeliness float64) *Genoms {
+func Mutation(genoms *serialization.Genoms, likeliness float64) *serialization.Genoms {
 	mutatedGenoms := make([]uint64, brainSize)
 
 	for index, genom := range genoms.GetGenoms() {
@@ -123,10 +124,10 @@ func Mutation(genoms *Genoms, likeliness float64) *Genoms {
 		}
 	}
 
-	return &Genoms{Genoms: mutatedGenoms}
+	return &serialization.Genoms{Genoms: mutatedGenoms}
 }
 
-func CrossoverST(parent1 *Genoms, parent2 *Genoms) []*Genoms {
+func CrossoverST(parent1 *serialization.Genoms, parent2 *serialization.Genoms) []*serialization.Genoms {
 	child1 := make([]uint64, brainSize)
 	child2 := make([]uint64, brainSize)
 
@@ -156,13 +157,13 @@ func CrossoverST(parent1 *Genoms, parent2 *Genoms) []*Genoms {
 		}
 	}
 
-	return []*Genoms{
-		Mutation(&Genoms{Genoms: child1}, mutationRate),
-		Mutation(&Genoms{Genoms: child2}, mutationRate),
+	return []*serialization.Genoms{
+		Mutation(&serialization.Genoms{Genoms: child1}, mutationRate),
+		Mutation(&serialization.Genoms{Genoms: child2}, mutationRate),
 	}
 }
 
-func CrossoverMT(parent1 *Genoms, parent2 *Genoms) []*Genoms {
+func CrossoverMT(parent1 *serialization.Genoms, parent2 *serialization.Genoms) []*serialization.Genoms {
 	child1channels := make([]chan uint64, brainSize)
 	child2channels := make([]chan uint64, brainSize)
 
@@ -204,8 +205,8 @@ func CrossoverMT(parent1 *Genoms, parent2 *Genoms) []*Genoms {
 		child2[i] = <-child2channels[i]
 	}
 
-	return []*Genoms{
-		Mutation(&Genoms{Genoms: child1}, mutationRate),
-		Mutation(&Genoms{Genoms: child2}, mutationRate),
+	return []*serialization.Genoms{
+		Mutation(&serialization.Genoms{Genoms: child1}, mutationRate),
+		Mutation(&serialization.Genoms{Genoms: child2}, mutationRate),
 	}
 }

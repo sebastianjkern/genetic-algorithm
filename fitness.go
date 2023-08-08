@@ -1,7 +1,8 @@
 package main
 
 import (
-	"github.com/golang/protobuf/proto"
+	"genetic-algorithm/serialization"
+	"google.golang.org/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"math"
@@ -11,7 +12,7 @@ func Map(size uint16, value uint16) float64 {
 	return float64(value) * (float64(size) / float64(math.MaxUint16))
 }
 
-func GetFitness(creature Genoms) float64 {
+func GetFitness(creature *serialization.Genoms) float64 {
 	distanceMap, err := GetDistanceMap()
 	if err != nil {
 		log.Fatal(err)
@@ -33,7 +34,7 @@ func GetFitness(creature Genoms) float64 {
 	return math.Log2(1 / totalSum)
 }
 
-func CalculateFitness(population []*Genoms) (map[int]float64, int) {
+func CalculateFitness(population []*serialization.Genoms) (map[int]float64, int) {
 	channels := map[int]chan float64{}
 	best := 0
 
@@ -45,7 +46,7 @@ func CalculateFitness(population []*Genoms) (map[int]float64, int) {
 	for index, creature := range population {
 		creature := creature
 		go func(val chan float64) {
-			val <- GetFitness(*creature)
+			val <- GetFitness(creature)
 		}(channels[index])
 	}
 
@@ -60,7 +61,7 @@ func CalculateFitness(population []*Genoms) (map[int]float64, int) {
 }
 
 func SerializeFitnessData(fitness []float32) error {
-	out, err := proto.Marshal(&Fitness{AverageFitness: fitness})
+	out, err := proto.Marshal(&serialization.Fitness{AverageFitness: fitness})
 	if err != nil {
 		log.Fatalln("Failed to encode fitness buffer: ", err)
 	}
